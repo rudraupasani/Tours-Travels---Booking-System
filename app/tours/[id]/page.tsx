@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, use, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { getTourById, Tour } from "@/lib/data";
+import { getTourById, Tour, Review, getReviewsByTourId, createReview } from "@/lib/data";
 import {
   Star, Clock, Users, MapPin, Heart, ArrowRight,
   ChevronLeft, ChevronRight, Check, ChevronDown,
@@ -23,24 +23,113 @@ function formatINR(amount: number) {
 
 export default function TourDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  
+
   const [tour, setTour] = useState<Tour | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
   const [activeTab, setActiveTab] = useState("Overview");
   const [openDay, setOpenDay] = useState<number | null>(1);
-  const [guests, setGuests] = useState(2);
+  const [guests, setGuests] = useState(1);
   const [date, setDate] = useState("");
   const [wishlisted, setWishlisted] = useState(false);
+
+  // Reviews states
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(true);
+
+  // Submit Review states
+  const [newReviewName, setNewReviewName] = useState("");
+  const [newReviewRating, setNewReviewRating] = useState(5);
+  const [newReviewText, setNewReviewText] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewSuccess, setReviewSuccess] = useState("");
+  const [reviewError, setReviewError] = useState("");
 
   useEffect(() => {
     async function load() {
       const data = await getTourById(id);
       setTour(data);
+      if (data) {
+        const revs = await getReviewsByTourId(id);
+        setReviews(revs);
+      }
       setLoading(false);
+      setLoadingReviews(false);
     }
     load();
   }, [id]);
+
+  const totalReviewsCount = reviews.length;
+
+  const reviewBreakdown = useMemo(() => {
+    if (totalReviewsCount === 0) {
+      return [
+        { label: "Excellent", pct: 0 },
+        { label: "Good", pct: 0 },
+        { label: "Average", pct: 0 },
+        { label: "Poor", pct: 0 },
+      ];
+    }
+    let excellent = 0;
+    let good = 0;
+    let average = 0;
+    let poor = 0;
+
+    reviews.forEach((r) => {
+      if (r.rating === 5) excellent++;
+      else if (r.rating === 4) good++;
+      else if (r.rating === 3 || r.rating === 2) average++;
+      else poor++;
+    });
+
+    return [
+      { label: "Excellent", pct: Math.round((excellent / totalReviewsCount) * 100) },
+      { label: "Good", pct: Math.round((good / totalReviewsCount) * 100) },
+      { label: "Average", pct: Math.round((average / totalReviewsCount) * 100) },
+      { label: "Poor", pct: Math.round((poor / totalReviewsCount) * 100) },
+    ];
+  }, [reviews, totalReviewsCount]);
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newReviewName.trim() || !newReviewText.trim()) {
+      setReviewError("Please fill in all fields.");
+      return;
+    }
+    setSubmittingReview(true);
+    setReviewError("");
+    setReviewSuccess("");
+
+    try {
+      const added = await createReview({
+        tour_id: id,
+        user_name: newReviewName,
+        rating: newReviewRating,
+        text: newReviewText,
+      });
+
+      if (added) {
+        setReviewSuccess("Review submitted successfully!");
+        setNewReviewName("");
+        setNewReviewText("");
+        setNewReviewRating(5);
+
+        // Reload reviews and tour metadata
+        const updatedTour = await getTourById(id);
+        if (updatedTour) setTour(updatedTour);
+
+        const revs = await getReviewsByTourId(id);
+        setReviews(revs);
+      } else {
+        setReviewError("Failed to submit review. Please try again.");
+      }
+    } catch (err) {
+      console.error(err);
+      setReviewError("An error occurred. Please try again.");
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -59,12 +148,15 @@ export default function TourDetailPage({ params }: { params: Promise<{ id: strin
   const tabs = ["Overview", "Highlights", "Itinerary", "Reviews"];
   const discount = Math.round(((tour.originalPrice - tour.price) / tour.originalPrice) * 100);
 
+  // Fallback to the main tour image if there are no images in the array
+  const tourImages = (tour.images && tour.images.length > 0) ? tour.images : [tour.image];
+
   return (
     <div className="flex flex-col min-h-screen bg-white">
       <Navbar />
 
       {/* Breadcrumb */}
-      <div className="bg-brand-navy/5 border-b border-gray-100 pt-24 pb-3">
+      <div className="bg-brand-navy/5 border-b border-gray-100 pt-5 pb-3">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-2 text-sm text-gray-500 font-medium">
             <Link href="/" className="hover:text-brand-orange transition-colors">Home</Link>
@@ -83,37 +175,45 @@ export default function TourDetailPage({ params }: { params: Promise<{ id: strin
           <div className="flex-1 min-w-0">
 
             {/* Image Gallery */}
-            <div className="relative rounded-3xl overflow-hidden mb-3 h-72 sm:h-96 shadow-lg">
-              <Image src={tour.images[activeImage]} alt={tour.title} fill sizes="(max-width: 1024px) 100vw, 700px" className="object-cover transition-opacity duration-300" priority />
+            <div className="relative rounded-3xl overflow-hidden mb-3 h-72 sm:h-96 shadow-lg bg-gray-100">
+              {tourImages[activeImage] && (
+                <Image src={tourImages[activeImage]} alt={tour.title} fill sizes="(max-width: 1024px) 100vw, 700px" className="object-cover transition-opacity duration-300" priority />
+              )}
               {tour.badge && (
                 <span className="absolute top-4 left-4 bg-brand-orange text-white text-sm font-bold px-4 py-1.5 rounded-full shadow-md">{tour.badge}</span>
               )}
               <span className="absolute top-4 right-4 bg-green-500 text-white text-sm font-bold px-3 py-1 rounded-full">-{discount}% OFF</span>
-              <button onClick={() => setActiveImage((p) => (p - 1 + tour.images.length) % tour.images.length)}
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 backdrop-blur rounded-full flex items-center justify-center shadow hover:bg-white transition-colors">
-                <ChevronLeft className="w-5 h-5 text-brand-navy" />
-              </button>
-              <button onClick={() => setActiveImage((p) => (p + 1) % tour.images.length)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 backdrop-blur rounded-full flex items-center justify-center shadow hover:bg-white transition-colors">
-                <ChevronRight className="w-5 h-5 text-brand-navy" />
-              </button>
+              {tourImages.length > 1 && (
+                <>
+                  <button onClick={() => setActiveImage((p) => (p - 1 + tourImages.length) % tourImages.length)}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 backdrop-blur rounded-full flex items-center justify-center shadow hover:bg-white transition-colors">
+                    <ChevronLeft className="w-5 h-5 text-brand-navy" />
+                  </button>
+                  <button onClick={() => setActiveImage((p) => (p + 1) % tourImages.length)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 backdrop-blur rounded-full flex items-center justify-center shadow hover:bg-white transition-colors">
+                    <ChevronRight className="w-5 h-5 text-brand-navy" />
+                  </button>
+                </>
+              )}
             </div>
 
             {/* Thumbnail strip */}
-            <div className="flex gap-2 mb-8 overflow-x-auto pb-1">
-              {tour.images.map((img, i) => (
-                <button key={i} onClick={() => setActiveImage(i)} className={`relative flex-shrink-0 w-20 h-14 rounded-xl overflow-hidden border-2 transition-all ${i === activeImage ? "border-brand-orange scale-105" : "border-transparent opacity-70 hover:opacity-100"}`}>
-                  <Image src={img} alt="" fill sizes="80px" className="object-cover" />
-                </button>
-              ))}
-            </div>
+            {tourImages.length > 1 && (
+              <div className="flex gap-2 mb-8 overflow-x-auto pb-1">
+                {tourImages.map((img, i) => (
+                  <button key={i} onClick={() => setActiveImage(i)} className={`relative flex-shrink-0 w-20 h-14 rounded-xl overflow-hidden border-2 transition-all ${i === activeImage ? "border-brand-orange scale-105" : "border-transparent opacity-70 hover:opacity-100"}`}>
+                    <Image src={img} alt="" fill sizes="80px" className="object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Title & Meta */}
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <MapPin className="w-4 h-4 text-brand-orange" />
-                  <span className="text-sm font-semibold text-brand-orange">{tour.destination}, {tour.country}</span>
+                  <span className="text-sm font-semibold text-brand-orange">{tour?.destination}, {tour?.country}</span>
                 </div>
                 <h1 className="font-serif font-black text-3xl text-brand-navy leading-tight">{tour.title}</h1>
               </div>
@@ -171,14 +271,6 @@ export default function TourDetailPage({ params }: { params: Promise<{ id: strin
                     ))}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  {[{ icon: Wifi, label: "Free WiFi" }, { icon: Car, label: "Transfers" }, { icon: Utensils, label: "Meals" }, { icon: Camera, label: "Photo Ops" }].map(({ icon: Icon, label }) => (
-                    <div key={label} className="flex flex-col items-center gap-2 p-4 bg-orange-50 rounded-2xl text-center">
-                      <Icon className="w-6 h-6 text-brand-orange" />
-                      <span className="text-xs font-bold text-brand-navy">{label}</span>
-                    </div>
-                  ))}
-                </div>
               </div>
             )}
 
@@ -222,13 +314,13 @@ export default function TourDetailPage({ params }: { params: Promise<{ id: strin
                   <div className="text-center">
                     <p className="text-6xl font-black font-serif">{tour.rating}</p>
                     <div className="flex items-center justify-center gap-0.5 my-1">
-                      {[1,2,3,4,5].map((s) => <Star key={s} className={`w-4 h-4 ${s <= Math.round(tour.rating) ? "fill-amber-400 text-amber-400" : "text-white/30"}`} />)}
+                      {[1, 2, 3, 4, 5].map((s) => <Star key={s} className={`w-4 h-4 ${s <= Math.round(tour.rating) ? "fill-amber-400 text-amber-400" : "text-white/30"}`} />)}
                     </div>
                     <p className="text-white/60 text-xs font-semibold">{tour.reviews} Reviews</p>
                   </div>
                   <div className="flex-1 space-y-2">
-                    {[["Excellent", 78], ["Good", 14], ["Average", 5], ["Poor", 3]].map(([label, pct]) => (
-                      <div key={label as string} className="flex items-center gap-3 text-sm">
+                    {reviewBreakdown.map(({ label, pct }) => (
+                      <div key={label} className="flex items-center gap-3 text-sm">
                         <span className="w-16 text-white/60 font-medium text-xs">{label}</span>
                         <div className="flex-1 h-2 bg-white/20 rounded-full overflow-hidden">
                           <div className="h-full bg-amber-400 rounded-full" style={{ width: `${pct}%` }} />
@@ -238,29 +330,115 @@ export default function TourDetailPage({ params }: { params: Promise<{ id: strin
                     ))}
                   </div>
                 </div>
-                {[{ name: "Sarah M.", rating: 5, date: "June 2026", text: "Absolutely magical! Every detail was perfect, from the accommodation to the guided tours. Highly recommend!" },
-                  { name: "James T.", rating: 5, date: "May 2026", text: "Best trip of our lives! The guides were knowledgeable and friendly. Will definitely book again." },
-                  { name: "Priya K.", rating: 4, date: "April 2026", text: "Great experience overall. The itinerary was well-planned and the group size was perfect." }
-                ].map((r) => (
-                  <div key={r.name} className="p-5 border border-gray-100 rounded-2xl">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-brand-orange to-amber-300 rounded-full flex items-center justify-center text-white font-black text-sm">{r.name[0]}</div>
-                      <div>
-                        <p className="font-bold text-brand-navy text-sm">{r.name}</p>
-                        <p className="text-xs text-gray-400">{r.date}</p>
-                      </div>
-                      <div className="ml-auto flex gap-0.5">{[1,2,3,4,5].map((s) => <Star key={s} className={`w-3.5 h-3.5 ${s <= r.rating ? "fill-amber-400 text-amber-400" : "text-gray-200"}`} />)}</div>
-                    </div>
-                    <p className="text-sm text-gray-600 font-medium leading-relaxed">{r.text}</p>
+
+                {/* List of Reviews */}
+                {loadingReviews ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-orange mx-auto" />
                   </div>
-                ))}
+                ) : reviews.length === 0 ? (
+                  <div className="text-center py-8 bg-gray-50 border border-gray-100/50 rounded-2xl">
+                    <p className="text-gray-400 font-semibold text-sm">No reviews yet. Be the first to share your experience!</p>
+                  </div>
+                ) : (
+                  reviews.map((r) => (
+                    <div key={r.id} className="p-5 border border-gray-100 rounded-2xl">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-brand-orange to-amber-300 rounded-full flex items-center justify-center text-white font-black text-sm">
+                          {r.user_name ? r.user_name[0].toUpperCase() : "A"}
+                        </div>
+                        <div>
+                          <p className="font-bold text-brand-navy text-sm">{r.user_name}</p>
+                          <p className="text-xs text-gray-400">
+                            {new Date(r.created_at).toLocaleDateString("en-IN", { month: "long", year: "numeric" })}
+                          </p>
+                        </div>
+                        <div className="ml-auto flex gap-0.5">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star key={s} className={`w-3.5 h-3.5 ${s <= r.rating ? "fill-amber-400 text-amber-400" : "text-gray-200"}`} />
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-600 font-medium leading-relaxed">{r.text}</p>
+                    </div>
+                  ))
+                )}
+
+                {/* Write a Review Form */}
+                <div className="bg-gray-50 border border-gray-100 rounded-2xl p-6 mt-8">
+                  <h3 className="font-serif font-black text-xl text-brand-navy mb-4">Write a Review</h3>
+
+                  {reviewSuccess && (
+                    <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm font-semibold mb-4">
+                      {reviewSuccess}
+                    </div>
+                  )}
+                  {reviewError && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-semibold mb-4">
+                      {reviewError}
+                    </div>
+                  )}
+
+                  <form onSubmit={handleSubmitReview} className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Your Name</label>
+                      <input
+                        type="text"
+                        value={newReviewName}
+                        onChange={(e) => setNewReviewName(e.target.value)}
+                        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-orange/30 focus:border-brand-orange"
+                        placeholder="e.g. Rudra Upasani"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Rating</label>
+                      <div className="flex gap-1.5">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => setNewReviewRating(star)}
+                            className="text-amber-400 hover:scale-110 transition-transform"
+                          >
+                            <Star
+                              className={`w-6 h-6 ${star <= newReviewRating ? "fill-amber-400 text-amber-400" : "text-gray-300"
+                                }`}
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Review Comment</label>
+                      <textarea
+                        value={newReviewText}
+                        onChange={(e) => setNewReviewText(e.target.value)}
+                        rows={4}
+                        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-orange/30 focus:border-brand-orange resize-none"
+                        placeholder="Share your experience with this tour..."
+                        required
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={submittingReview}
+                      className="bg-brand-orange hover:bg-brand-orange-hover disabled:opacity-50 text-white font-bold px-6 py-3 rounded-xl transition-all shadow hover:shadow-lg text-sm flex items-center gap-2 cursor-pointer"
+                    >
+                      {submittingReview ? "Submitting..." : "Submit Review"}
+                    </button>
+                  </form>
+                </div>
               </div>
             )}
           </div>
 
           {/* ── Sticky Booking Sidebar ── */}
           <div className="lg:w-80 flex-shrink-0">
-            <div className="sticky top-24 bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
+            <div className="sticky top-24 bg-white rounded-3xl  border border-gray-100 overflow-hidden">
               <div className="bg-brand-navy p-6 text-white">
                 <p className="text-white/60 text-sm font-medium mb-1">Starting from</p>
                 <div className="flex items-end gap-2">

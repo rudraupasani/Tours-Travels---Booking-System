@@ -53,9 +53,19 @@ export interface GalleryImage {
   category: string;
 }
 
+export interface Review {
+  id: string;
+  tour_id: string;
+  user_name: string;
+  rating: number;
+  text: string;
+  created_at: string;
+}
+
 function mapTour(row: any): Tour {
   return {
     ...row,
+    destination: row.destination?.name ?? row.destination ?? undefined,
     originalPrice: row.original_price ?? row.originalPrice ?? 0,
     groupSize: row.group_size ?? row.groupSize ?? 0,
     isPopular: row.is_popular ?? row.isPopular ?? false,
@@ -65,19 +75,19 @@ function mapTour(row: any): Tour {
 // ─── Tours ────────────────────────────────────────────────────────────────────
 
 export async function getTours(): Promise<Tour[]> {
-  const { data, error } = await supabase.from("tours").select("*");
+  const { data, error } = await supabase.from("tours").select("*, destination:destinations(name)");
   if (error) { console.error("Error fetching tours:", error); return []; }
   return data.map(mapTour);
 }
 
 export async function getTourById(id: string): Promise<Tour | null> {
-  const { data, error } = await supabase.from("tours").select("*").eq("id", id).single();
+  const { data, error } = await supabase.from("tours").select("*, destination:destinations(name)").eq("id", id).single();
   if (error) { console.error("Error fetching tour:", error); return null; }
   return mapTour(data);
 }
 
 export async function getPopularTours(): Promise<Tour[]> {
-  const { data, error } = await supabase.from("tours").select("*").eq("is_popular", true).limit(4);
+  const { data, error } = await supabase.from("tours").select("*, destination:destinations(name)").eq("is_popular", true).limit(4);
   if (error) { console.error("Error fetching popular tours:", error); return []; }
   return data.map(mapTour);
 }
@@ -242,7 +252,7 @@ export async function createTour(tour: Omit<Tour, "id">) {
     includes: tour.includes || [],
     is_popular: tour.isPopular || false,
   };
-  const { data, error } = await supabase.from("tours").insert(row).select().single();
+  const { data, error } = await supabase.from("tours").insert(row).select("*, destination:destinations(name)").single();
   if (error) { console.error("Error creating tour:", error); return null; }
   return mapTour(data);
 }
@@ -269,7 +279,7 @@ export async function updateTour(id: string, tour: Partial<Tour>) {
   if (tour.includes !== undefined) row.includes = tour.includes;
   if (tour.isPopular !== undefined) row.is_popular = tour.isPopular;
 
-  const { data, error } = await supabase.from("tours").update(row).eq("id", id).select().single();
+  const { data, error } = await supabase.from("tours").update(row).eq("id", id).select("*, destination:destinations(name)").single();
   if (error) { console.error("Error updating tour:", error); return null; }
   return mapTour(data);
 }
@@ -374,5 +384,53 @@ export async function uploadGalleryFile(file: File): Promise<string | null> {
 
   return publicUrl;
 }
+
+// ─── Tour Reviews ─────────────────────────────────────────────────────────────
+
+export async function getReviewsByTourId(tourId: string): Promise<Review[]> {
+  const { data, error } = await supabase
+    .from("reviews")
+    .select("*")
+    .eq("tour_id", tourId)
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("Error fetching reviews:", error);
+    return [];
+  }
+  return data as Review[];
+}
+
+export async function createReview(review: Omit<Review, "id" | "created_at">): Promise<Review | null> {
+  const { data, error } = await supabase.from("reviews").insert(review).select().single();
+  if (error) {
+    console.error("Error creating review:", error);
+    return null;
+  }
+
+  // Recalculate average rating and update tour
+  const { data: allReviews, error: fetchError } = await supabase
+    .from("reviews")
+    .select("rating")
+    .eq("tour_id", review.tour_id);
+
+  if (!fetchError && allReviews) {
+    const totalReviews = allReviews.length;
+    const avgRating = totalReviews > 0
+      ? Math.round((allReviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews) * 10) / 10
+      : 0;
+
+    const { error: updateError } = await supabase
+      .from("tours")
+      .update({ rating: avgRating, reviews: totalReviews })
+      .eq("id", review.tour_id);
+
+    if (updateError) {
+      console.error("Error updating tour rating/reviews:", updateError);
+    }
+  }
+
+  return data as Review;
+}
+
 
 

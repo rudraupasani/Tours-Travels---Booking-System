@@ -99,17 +99,6 @@ export default function Hero() {
                 className="w-full pl-10 pr-3 py-2.5 bg-transparent text-white placeholder-white/50 text-sm font-medium focus:outline-none"
               />
             </div>
-            <select
-              value={destination}
-              onChange={(e) => setDestination(e.target.value)}
-              className="bg-white/10 text-white text-sm font-semibold px-3 py-2.5 rounded-xl border border-white/20 focus:outline-none cursor-pointer"
-            >
-              {DESTINATIONS.map((d) => (
-                <option key={d} value={d} className="text-brand-navy bg-white">
-                  {d || "All Destinations"}
-                </option>
-              ))}
-            </select>
             <button
               onClick={handleSearch}
               className="bg-brand-orange hover:bg-brand-orange-hover text-white font-bold px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg whitespace-nowrap"
@@ -127,10 +116,7 @@ export default function Hero() {
               Explore All Tours
               <ArrowRight className="w-5 h-5" />
             </button>
-            <div className="flex items-center gap-4 text-white/80 text-sm font-medium">
-              <span className="flex items-center gap-1.5">✅ Best Price Guarantee</span>
-              <span className="flex items-center gap-1.5">🛡️ Free Cancellation</span>
-            </div>
+
           </div>
         </div>
       </div>

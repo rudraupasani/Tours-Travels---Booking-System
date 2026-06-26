@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Tour, createTour, updateTour, deleteTour } from "@/lib/data";
+import { Tour, createTour, updateTour, deleteTour, getDestinations, Destination } from "@/lib/data";
 import { Star, Check, X, Plus, Pencil, Trash2 } from "lucide-react";
 import Image from "next/image";
 
@@ -10,6 +10,7 @@ const EMPTY_TOUR = {
   title: "", country: "", image: "", price: 0, originalPrice: 0,
   rating: 0, reviews: 0, duration: "", days: 0, nights: 0,
   groupSize: 10, badge: "", isPopular: false, destination: "",
+  destination_id: "",
   images: [] as string[], type: [] as string[],
   highlights: [] as string[], includes: [] as string[],
   itinerary: [] as { day: number; title: string; description: string }[],
@@ -26,11 +27,14 @@ export default function AdminToursPage() {
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
+  const [destinations, setDestinations] = useState<Destination[]>([]);
+
   async function fetchTours() {
-    const { data, error } = await supabase.from("tours").select("*").order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("tours").select("*, destination:destinations(name)").order("created_at", { ascending: false });
     if (!error && data) {
       const mapped = data.map(row => ({
         ...row,
+        destination: row.destination?.name ?? row.destination ?? undefined,
         originalPrice: row.original_price,
         groupSize: row.group_size,
         isPopular: row.is_popular,
@@ -40,7 +44,14 @@ export default function AdminToursPage() {
     setLoading(false);
   }
 
-  useEffect(() => { fetchTours(); }, []);
+  useEffect(() => {
+    fetchTours();
+    async function loadDestinations() {
+      const dests = await getDestinations();
+      setDestinations(dests);
+    }
+    loadDestinations();
+  }, []);
 
   async function togglePopular(id: string, currentStatus: boolean) {
     const { error } = await supabase.from("tours").update({ is_popular: !currentStatus }).eq("id", id);
@@ -64,6 +75,7 @@ export default function AdminToursPage() {
       days: tour.days, nights: tour.nights, groupSize: tour.groupSize,
       badge: tour.badge || "", isPopular: tour.isPopular || false,
       destination: tour.destination || "",
+      destination_id: tour.destination_id || "",
       images: tour.images || [], type: tour.type || [],
       highlights: tour.highlights || [], includes: tour.includes || [],
       itinerary: tour.itinerary || [],
@@ -226,16 +238,35 @@ export default function AdminToursPage() {
               {/* Destination + Country */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Destination</label>
-                  <input type="text" value={form.destination} onChange={e => updateField("destination", e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-orange/30 focus:border-brand-orange"
-                    placeholder="e.g. Jaipur" />
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Destination *</label>
+                  <select
+                    value={form.destination_id || ""}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      const selectedDest = destinations.find((d) => d.id === id);
+                      setForm((prev) => ({
+                        ...prev,
+                        destination_id: id,
+                        destination: selectedDest ? selectedDest.name : "",
+                        country: selectedDest ? selectedDest.country : prev.country,
+                      }));
+                    }}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-orange/30 focus:border-brand-orange cursor-pointer bg-white"
+                    required
+                  >
+                    <option value="">Select Destination</option>
+                    {destinations.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name} ({d.country})
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Country *</label>
                   <input type="text" value={form.country} onChange={e => updateField("country", e.target.value)}
                     className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-orange/30 focus:border-brand-orange"
-                    placeholder="e.g. India" />
+                    placeholder="e.g. India" required />
                 </div>
               </div>
 
@@ -290,19 +321,13 @@ export default function AdminToursPage() {
                 </div>
               </div>
 
-              {/* Group Size + Rating + Badge */}
-              <div className="grid grid-cols-3 gap-4">
+              {/* Group Size + Badge */}
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Group Size</label>
                   <input type="number" value={form.groupSize || ""} onChange={e => updateField("groupSize", Number(e.target.value))}
                     className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-orange/30 focus:border-brand-orange"
                     placeholder="10" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Rating</label>
-                  <input type="number" step="0.1" min="0" max="5" value={form.rating || ""} onChange={e => updateField("rating", Number(e.target.value))}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-orange/30 focus:border-brand-orange"
-                    placeholder="4.5" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Badge</label>
