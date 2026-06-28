@@ -90,8 +90,8 @@ function ToursContent() {
       <Navbar />
 
       {/* Page Hero */}
-      <div className="relative bg-brand-navy pt-32 pb-16 overflow-hidden">
-        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 20% 50%, #ffa801 0%, transparent 60%), radial-gradient(circle at 80% 20%, #3b82f6 0%, transparent 50%)" }} />
+      <div className="relative bg-brand-navy/100 pt-15 pb-15 overflow-hidden">
+        <div className="absolute inset-0 opacity-10 bg-[url('https://plus.unsplash.com/premium_vector-1718387200475-959cd38d9b04?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1pbi1zYW1lLXNlcmllc3wyfHx8ZW58MHx8fHx8')]" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-2 text-white/50 text-sm mb-4">
             <Link href="/" className="hover:text-brand-orange transition-colors">Home</Link>

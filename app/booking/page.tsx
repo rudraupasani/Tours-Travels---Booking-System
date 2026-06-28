@@ -3,10 +3,13 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { getTours, Tour, createBooking } from "@/lib/data";
-import { Check, ChevronRight, User, CreditCard, Shield, CheckCircle, MapPin, Clock, Users } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { Check, ChevronRight, User, CreditCard, Shield, CheckCircle, MapPin, Clock, Users, Lock, LogIn } from "lucide-react";
+import { Suspense } from "react";
 
 const STEPS = [
   { id: 1, label: "Tour Details", icon: MapPin },
@@ -15,27 +18,44 @@ const STEPS = [
   { id: 4, label: "Confirmation", icon: CheckCircle },
 ];
 
-export default function BookingPage() {
+function BookingContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
   const [selectedTour, setSelectedTour] = useState<Tour | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [bookingId, setBookingId] = useState("");
   const [form, setForm] = useState({
     firstName: "", lastName: "", email: "", phone: "",
     nationality: "", gender: "",
     cardNumber: "", cardExpiry: "", cardCVV: "", cardName: "",
-    guests: 2, date: "",
+    guests: 2,
   });
 
+  // ── Auth check ──────────────────────────────────────────────────────────────
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsLoggedIn(!!session);
+      setAuthChecked(true);
+    });
+  }, []);
+
+  // ── Load tours ──────────────────────────────────────────────────────────────
   useEffect(() => {
     async function load() {
+      const tourIdParam = searchParams.get("tourId");
       const data = await getTours();
-      if (data.length > 0) setSelectedTour(data[0]);
+      if (data.length > 0) {
+        const found = tourIdParam ? data.find(t => t.id === tourIdParam) : null;
+        setSelectedTour(found ?? data[0]);
+      }
       setLoading(false);
     }
     load();
-  }, []);
+  }, [searchParams]);
 
   const update = (field: string, value: string | number) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -46,7 +66,10 @@ export default function BookingPage() {
   const total = subtotal + taxes;
 
 
-  if (loading) {
+
+
+  // ── Loading spinner ──────────────────────────────────────────────────────────
+  if (!authChecked || loading) {
     return (
       <div className="flex flex-col min-h-screen bg-white">
         <Navbar />
@@ -58,6 +81,47 @@ export default function BookingPage() {
     );
   }
 
+  // ── Not logged in → show gated screen ───────────────────────────────────────
+  if (!isLoggedIn) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center py-20 px-4">
+          <div className="max-w-md w-full bg-white rounded-3xl shadow-xl border border-gray-100 p-10 text-center">
+            <div className="w-20 h-20 bg-brand-orange/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Lock className="w-10 h-10 text-brand-orange" />
+            </div>
+            <h2 className="font-serif font-black text-2xl text-brand-navy mb-3">Login Required</h2>
+            <p className="text-gray-500 font-medium mb-8">
+              You need to be signed in to book a tour. Create a free account or log in to continue.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link
+                href="/login?redirect=/booking"
+                className="flex items-center justify-center gap-2 bg-brand-orange hover:bg-brand-orange-hover text-white font-bold px-7 py-3.5 rounded-xl transition-all shadow-lg hover:shadow-xl"
+              >
+                <LogIn className="w-4 h-4" /> Sign In
+              </Link>
+              <Link
+                href="/register"
+                className="flex items-center justify-center gap-2 border-2 border-brand-navy text-brand-navy hover:bg-brand-navy hover:text-white font-bold px-7 py-3.5 rounded-xl transition-all"
+              >
+                Create Account
+              </Link>
+            </div>
+            <div className="mt-6 pt-6 border-t border-gray-100">
+              <Link href="/tours" className="text-sm text-brand-orange hover:underline font-semibold">
+                ← Back to Tours
+              </Link>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // ── No tours available ───────────────────────────────────────────────────────
   if (!selectedTour) {
     return (
       <div className="flex flex-col min-h-screen bg-white">
@@ -76,7 +140,6 @@ export default function BookingPage() {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       <Navbar />
-
 
       {/* Header */}
       <div className="bg-brand-navy pt-28 pb-10">
@@ -133,14 +196,18 @@ export default function BookingPage() {
                         <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-brand-orange" />{selectedTour.destination}</span>
                         <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{selectedTour.duration}</span>
                       </div>
+                      {/* Show tour date range if admin set it */}
+                      {(selectedTour.tourStartDate || selectedTour.tourEndDate) && (
+                        <p className="text-xs text-brand-orange font-semibold mt-1.5">
+                          📅 Available:{" "}
+                          {selectedTour.tourStartDate ? new Date(selectedTour.tourStartDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "Now"}
+                          {" → "}
+                          {selectedTour.tourEndDate ? new Date(selectedTour.tourEndDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "Open"}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <div>
-                      <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Travel Date</label>
-                      <input type="date" value={form.date} onChange={(e) => update("date", e.target.value)} min={new Date().toISOString().split("T")[0]}
-                        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-orange/30 focus:border-brand-orange" />
-                    </div>
                     <div>
                       <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Number of Guests</label>
                       <div className="flex items-center gap-3 border border-gray-200 rounded-xl px-4 py-2.5">
@@ -251,8 +318,9 @@ export default function BookingPage() {
                     onClick={async () => {
                       if (step === 3 && selectedTour) {
                         setSubmitting(true);
-                        const startDate = form.date || new Date().toISOString().split("T")[0];
-                        const endDate = new Date(new Date(startDate).getTime() + selectedTour.days * 86400000).toISOString().split("T")[0];
+                        const startDate = selectedTour.tourStartDate || new Date().toISOString().split("T")[0];
+                        const endDate = selectedTour.tourEndDate
+                          || new Date(new Date(startDate).getTime() + selectedTour.days * 86400000).toISOString().split("T")[0];
                         const result = await createBooking({
                           tour_id: selectedTour.id,
                           start_date: startDate,
@@ -298,20 +366,20 @@ export default function BookingPage() {
               <div className="p-6 space-y-3">
                 <h3 className="font-serif font-black text-brand-navy text-lg mb-4">Order Summary</h3>
                 <div className="flex justify-between text-sm font-medium text-gray-600">
-                  <span>${selectedTour.price} × {form.guests} guests</span>
-                  <span>${subtotal}</span>
+                  <span>₹{selectedTour.price.toLocaleString("en-IN")} × {form.guests} guests</span>
+                  <span>₹{subtotal.toLocaleString("en-IN")}</span>
                 </div>
                 <div className="flex justify-between text-sm font-medium text-green-600">
                   <span>Savings</span>
-                  <span>-${discount * form.guests}</span>
+                  <span>-₹{(discount * form.guests).toLocaleString("en-IN")}</span>
                 </div>
                 <div className="flex justify-between text-sm font-medium text-gray-600">
                   <span>Taxes & fees (10%)</span>
-                  <span>${taxes}</span>
+                  <span>₹{taxes.toLocaleString("en-IN")}</span>
                 </div>
                 <div className="flex justify-between font-black text-brand-navy border-t border-gray-100 pt-3 text-lg">
                   <span>Total</span>
-                  <span>${total}</span>
+                  <span>₹{total.toLocaleString("en-IN")}</span>
                 </div>
                 <div className="flex items-center gap-2 bg-green-50 border border-green-100 rounded-xl p-3 mt-2">
                   <Shield className="w-4 h-4 text-green-500 flex-shrink-0" />
@@ -325,5 +393,21 @@ export default function BookingPage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function BookingPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col min-h-screen bg-white">
+        <Navbar />
+        <div className="flex-1 flex justify-center items-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-orange" />
+        </div>
+        <Footer />
+      </div>
+    }>
+      <BookingContent />
+    </Suspense>
   );
 }

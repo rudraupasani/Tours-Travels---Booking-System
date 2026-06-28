@@ -47,7 +47,7 @@ export default function RegisterPage() {
     } else {
       setSuccess(true);
       // Give a moment then redirect to home
-      setTimeout(() => router.push("/"), 3000);
+      setTimeout(() => router.push("/login"), 1000);
     }
   };
 

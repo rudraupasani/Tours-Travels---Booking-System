@@ -22,6 +22,8 @@ export interface Tour {
   includes: string[];
   badge?: string;
   isPopular?: boolean;
+  tourStartDate?: string; // ISO date string YYYY-MM-DD
+  tourEndDate?: string;   // ISO date string YYYY-MM-DD
 }
 
 export interface Destination {
@@ -69,6 +71,8 @@ function mapTour(row: any): Tour {
     originalPrice: row.original_price ?? row.originalPrice ?? 0,
     groupSize: row.group_size ?? row.groupSize ?? 0,
     isPopular: row.is_popular ?? row.isPopular ?? false,
+    tourStartDate: row.tour_start_date ?? row.tourStartDate ?? undefined,
+    tourEndDate: row.tour_end_date ?? row.tourEndDate ?? undefined,
   };
 }
 
@@ -251,6 +255,8 @@ export async function createTour(tour: Omit<Tour, "id">) {
     itinerary: tour.itinerary || [],
     includes: tour.includes || [],
     is_popular: tour.isPopular || false,
+    tour_start_date: tour.tourStartDate || null,
+    tour_end_date: tour.tourEndDate || null,
   };
   const { data, error } = await supabase.from("tours").insert(row).select("*, destination:destinations(name)").single();
   if (error) { console.error("Error creating tour:", error); return null; }
@@ -260,7 +266,7 @@ export async function createTour(tour: Omit<Tour, "id">) {
 export async function updateTour(id: string, tour: Partial<Tour>) {
   const row: any = {};
   if (tour.title !== undefined) row.title = tour.title;
-  if (tour.destination_id !== undefined) row.destination_id = tour.destination_id;
+  if (tour.destination_id !== undefined) row.destination_id = tour.destination_id || null;
   if (tour.country !== undefined) row.country = tour.country;
   if (tour.image !== undefined) row.image = tour.image;
   if (tour.images !== undefined) row.images = tour.images;
@@ -278,9 +284,14 @@ export async function updateTour(id: string, tour: Partial<Tour>) {
   if (tour.itinerary !== undefined) row.itinerary = tour.itinerary;
   if (tour.includes !== undefined) row.includes = tour.includes;
   if (tour.isPopular !== undefined) row.is_popular = tour.isPopular;
+  if (tour.tourStartDate !== undefined) row.tour_start_date = tour.tourStartDate || null;
+  if (tour.tourEndDate !== undefined) row.tour_end_date = tour.tourEndDate || null;
 
   const { data, error } = await supabase.from("tours").update(row).eq("id", id).select("*, destination:destinations(name)").single();
-  if (error) { console.error("Error updating tour:", error); return null; }
+  if (error) {
+    console.error("Error updating tour - code:", error.code, "| message:", error.message, "| details:", error.details, "| hint:", error.hint);
+    return null;
+  }
   return mapTour(data);
 }
 
@@ -320,9 +331,13 @@ export async function createBooking(booking: {
   travellers: number;
   status?: string;
 }) {
+  // Attach the logged-in user's ID so profile bookings work
+  const { data: { session } } = await supabase.auth.getSession();
+  const user_id = session?.user?.id ?? null;
+
   const { data, error } = await supabase
     .from("bookings")
-    .insert({ ...booking, status: booking.status || "Confirmed" })
+    .insert({ ...booking, status: booking.status || "Confirmed", user_id })
     .select()
     .single();
   if (error) { console.error("Error creating booking:", error); return null; }

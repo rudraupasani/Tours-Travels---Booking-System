@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Tour, createTour, updateTour, deleteTour, getDestinations, Destination } from "@/lib/data";
-import { Star, Check, X, Plus, Pencil, Trash2 } from "lucide-react";
+import { Tour, Booking, createTour, updateTour, deleteTour, getDestinations, Destination } from "@/lib/data";
+import { Star, Check, X, Plus, Pencil, Trash2, Eye, CalendarDays, Users, MapPin, Clock, Calendar } from "lucide-react";
 import Image from "next/image";
 
 const EMPTY_TOUR = {
@@ -14,6 +14,8 @@ const EMPTY_TOUR = {
   images: [] as string[], type: [] as string[],
   highlights: [] as string[], includes: [] as string[],
   itinerary: [] as { day: number; title: string; description: string }[],
+  tourStartDate: "",
+  tourEndDate: "",
 };
 
 type TourForm = typeof EMPTY_TOUR;
@@ -26,6 +28,11 @@ export default function AdminToursPage() {
   const [form, setForm] = useState<TourForm>({ ...EMPTY_TOUR });
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
+  // Detail view
+  const [viewingTour, setViewingTour] = useState<Tour | null>(null);
+  const [tourBookings, setTourBookings] = useState<Booking[]>([]);
+  const [bookingsLoading, setBookingsLoading] = useState(false);
 
   const [destinations, setDestinations] = useState<Destination[]>([]);
 
@@ -53,6 +60,19 @@ export default function AdminToursPage() {
     loadDestinations();
   }, []);
 
+  async function openTourDetail(tour: Tour) {
+    setViewingTour(tour);
+    setBookingsLoading(true);
+    setTourBookings([]);
+    const { data, error } = await supabase
+      .from("bookings")
+      .select("*")
+      .eq("tour_id", tour.id)
+      .order("created_at", { ascending: false });
+    if (!error && data) setTourBookings(data as Booking[]);
+    setBookingsLoading(false);
+  }
+
   async function togglePopular(id: string, currentStatus: boolean) {
     const { error } = await supabase.from("tours").update({ is_popular: !currentStatus }).eq("id", id);
     if (!error) {
@@ -79,6 +99,8 @@ export default function AdminToursPage() {
       images: tour.images || [], type: tour.type || [],
       highlights: tour.highlights || [], includes: tour.includes || [],
       itinerary: tour.itinerary || [],
+      tourStartDate: tour.tourStartDate || "",
+      tourEndDate: tour.tourEndDate || "",
     });
     setModalOpen(true);
   }
@@ -355,6 +377,96 @@ export default function AdminToursPage() {
                   onChange={e => updateField("includes", e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-orange/30 focus:border-brand-orange resize-none"
                   rows={2} placeholder="Hotel, Breakfast, Transport, Guide" />
+              </div>
+
+              {/* Itinerary */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">Day-by-Day Itinerary</label>
+                  <button
+                    type="button"
+                    onClick={() => updateField("itinerary", [...form.itinerary, { day: form.itinerary.length + 1, title: "", description: "" }])}
+                    className="flex items-center gap-1.5 text-xs font-bold text-brand-orange hover:text-brand-orange-hover bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Day
+                  </button>
+                </div>
+                {form.itinerary.length === 0 ? (
+                  <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center">
+                    <p className="text-sm text-gray-400 font-medium">No itinerary added yet.</p>
+                    <p className="text-xs text-gray-300 mt-1">Click &quot;Add Day&quot; to build a day-by-day schedule.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {form.itinerary.map((item, idx) => (
+                      <div key={idx} className="border border-gray-200 rounded-xl p-4 bg-gray-50/50">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="w-8 h-8 bg-brand-orange text-white rounded-full flex items-center justify-center text-xs font-black flex-shrink-0">
+                            D{idx + 1}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = form.itinerary.filter((_, i) => i !== idx).map((d, i) => ({ ...d, day: i + 1 }));
+                              updateField("itinerary", updated);
+                            }}
+                            className="text-red-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <div className="space-y-2">
+                          <input
+                            type="text"
+                            value={item.title}
+                            onChange={e => {
+                              const updated = form.itinerary.map((d, i) => i === idx ? { ...d, title: e.target.value } : d);
+                              updateField("itinerary", updated);
+                            }}
+                            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-semibold text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-orange/30 focus:border-brand-orange bg-white"
+                            placeholder={`Day ${idx + 1} title, e.g. Arrival & City Tour`}
+                          />
+                          <textarea
+                            value={item.description}
+                            onChange={e => {
+                              const updated = form.itinerary.map((d, i) => i === idx ? { ...d, description: e.target.value } : d);
+                              updateField("itinerary", updated);
+                            }}
+                            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-orange/30 focus:border-brand-orange resize-none bg-white"
+                            rows={2}
+                            placeholder="Describe what happens on this day..."
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+
+              {/* Tour Available Dates */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Tour Start Date</label>
+                  <input
+                    type="date"
+                    value={form.tourStartDate}
+                    onChange={e => updateField("tourStartDate", e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-orange/30 focus:border-brand-orange"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-1">Earliest date users can book</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Tour End Date</label>
+                  <input
+                    type="date"
+                    value={form.tourEndDate}
+                    min={form.tourStartDate || undefined}
+                    onChange={e => updateField("tourEndDate", e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-orange/30 focus:border-brand-orange"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-1">Latest date users can book</p>
+                </div>
               </div>
 
               {/* Popular toggle */}

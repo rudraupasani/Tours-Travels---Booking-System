@@ -10,7 +10,7 @@ import { getTourById, Tour, Review, getReviewsByTourId, createReview } from "@/l
 import {
   Star, Clock, Users, MapPin, Heart, ArrowRight,
   ChevronLeft, ChevronRight, Check, ChevronDown,
-  Wifi, Car, Utensils, Camera,
+  Wifi, Car, Utensils, Camera, Calendar,
 } from "lucide-react";
 
 function formatINR(amount: number) {
@@ -239,6 +239,39 @@ export default function TourDetailPage({ params }: { params: Promise<{ id: strin
               ))}
             </div>
 
+            {/* Tour Dates Banner — shown only if admin has set start/end date */}
+            {(tour.tourStartDate || tour.tourEndDate) && (
+              <div className="flex items-center gap-4 bg-gradient-to-r from-brand-navy to-blue-900 rounded-2xl p-5 mb-8 text-white">
+                <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Calendar className="w-6 h-6 text-brand-orange" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs font-black uppercase tracking-widest text-white/50 mb-1">Tour Availability</p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    {tour.tourStartDate && (
+                      <div>
+                        <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider block">Starts</span>
+                        <span className="font-black text-white text-base">
+                          {new Date(tour.tourStartDate).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
+                        </span>
+                      </div>
+                    )}
+                    {tour.tourStartDate && tour.tourEndDate && (
+                      <div className="w-8 h-0.5 bg-brand-orange rounded hidden sm:block" />
+                    )}
+                    {tour.tourEndDate && (
+                      <div>
+                        <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider block">Ends</span>
+                        <span className="font-black text-white text-base">
+                          {new Date(tour.tourEndDate).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Tabs */}
             <div className="border-b border-gray-200 mb-8">
               <div className="flex gap-6 overflow-x-auto">
@@ -449,11 +482,38 @@ export default function TourDetailPage({ params }: { params: Promise<{ id: strin
                 <span className="inline-block mt-3 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full">Save {formatINR(tour.originalPrice - tour.price)}</span>
               </div>
               <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Select Date</label>
-                  <input type="date" value={date} onChange={(e) => setDate(e.target.value)} min={new Date().toISOString().split("T")[0]}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-orange/30 focus:border-brand-orange cursor-pointer" />
-                </div>
+                {/* Tour dates display */}
+                {(tour.tourStartDate || tour.tourEndDate) ? (
+                  <div className="bg-orange-50 border border-orange-100 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Calendar className="w-4 h-4 text-brand-orange" />
+                      <span className="text-xs font-black text-brand-orange uppercase tracking-wider">Tour Dates</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Start Date</p>
+                        <p className="font-black text-brand-navy text-sm">
+                          {tour.tourStartDate
+                            ? new Date(tour.tourStartDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+                            : "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">End Date</p>
+                        <p className="font-black text-brand-navy text-sm">
+                          {tour.tourEndDate
+                            ? new Date(tour.tourEndDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+                            : "—"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 text-center">
+                    <Calendar className="w-5 h-5 text-gray-300 mx-auto mb-1" />
+                    <p className="text-xs text-gray-400 font-semibold">Dates to be announced</p>
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Guests</label>
                   <div className="flex items-center gap-3">

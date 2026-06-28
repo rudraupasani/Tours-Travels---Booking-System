@@ -205,11 +205,11 @@ export default function ProfilePage() {
 
       {/* Hero Banner */}
 
-      <div className="max-w-6xl mt-10 mx-auto px-4 sm:px-6 lg:px-8 w-full flex-1 -mt-16 pb-20">
+      <div className="max-w-6xl  mx-auto px-4 sm:px-6 lg:px-8 w-full flex-1 pb-20">
         <div className="flex flex-col lg:flex-row gap-8">
 
           {/* ── Left Sidebar ── */}
-          <div className="lg:w-72 flex-shrink-0">
+          <div className="lg:w-72 mt-15 flex-shrink-0">
 
             {/* Profile Card */}
             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden mb-5">
@@ -219,7 +219,7 @@ export default function ProfilePage() {
                   <div className="w-24 h-24 rounded-full bg-gradient-to-br from-brand-orange via-amber-400 to-amber-300 flex items-center justify-center text-white font-black text-3xl shadow-lg ring-4 ring-white select-none">
                     {initials}
                   </div>
-                  <button className="absolute bottom-0 right-0 w-8 h-8 bg-brand-orange text-white rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform">
+                  <button className="absolute cursor-pointer bottom-0 right-0 w-8 h-8 bg-brand-orange text-white rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform">
                     <Camera className="w-4 h-4" />
                   </button>
                 </div>
@@ -236,7 +236,7 @@ export default function ProfilePage() {
 
                 <button
                   onClick={() => { setActiveTab("settings"); setEditing(true); }}
-                  className="mt-4 flex items-center gap-2 text-xs font-bold text-brand-orange border border-orange-200 hover:bg-orange-50 px-4 py-2 rounded-full transition-colors">
+                  className="mt-4 cursor-pointer flex items-center gap-2 text-xs font-bold text-brand-orange border border-orange-200 hover:bg-orange-50 px-4 py-2 rounded-full transition-colors">
                   <Edit3 className="w-3.5 h-3.5" /> Edit Profile
                 </button>
               </div>
@@ -260,7 +260,7 @@ export default function ProfilePage() {
             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-3">
               {TABS.map(({ id, label, icon: Icon }) => (
                 <button key={id} onClick={() => setActiveTab(id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all ${activeTab === id
+                  className={`w-full cursor-pointer flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold transition-all ${activeTab === id
                     ? "bg-brand-orange text-white shadow-sm"
                     : "text-gray-600 hover:bg-gray-50 hover:text-brand-navy"
                     }`}>
@@ -280,7 +280,7 @@ export default function ProfilePage() {
               ))}
               <div className="border-t border-gray-100 mt-2 pt-2">
                 <button onClick={handleSignOut}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold text-red-500 hover:bg-red-50 transition-all">
+                  className="w-full cursor-pointer flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold text-red-500 hover:bg-red-50 transition-all">
                   <LogOut className="w-4 h-4" /> Sign Out
                 </button>
               </div>
@@ -319,7 +319,7 @@ export default function ProfilePage() {
                     <h3 className="font-serif font-black text-xl text-brand-navy">Recent Bookings</h3>
                     {bookings.length > 0 && (
                       <button onClick={() => setActiveTab("bookings")}
-                        className="text-brand-orange text-sm font-bold flex items-center gap-1 hover:underline">
+                        className="text-brand-orange cursor-pointer text-sm font-bold flex items-center gap-1 hover:underline">
                         View All <ChevronRight className="w-4 h-4" />
                       </button>
                     )}
@@ -332,7 +332,7 @@ export default function ProfilePage() {
                     <div className="text-center py-10 bg-gray-50 rounded-2xl">
                       <BookOpen className="w-10 h-10 text-gray-300 mx-auto mb-3" />
                       <p className="text-gray-500 font-semibold">No bookings yet</p>
-                      <Link href="/tours" className="text-brand-orange text-sm font-bold hover:underline mt-1 inline-block">
+                      <Link href="/tours" className="text-brand-orange cursor-pointer text-sm font-bold hover:underline mt-1 inline-block">
                         Browse Tours
                       </Link>
                     </div>
@@ -579,12 +579,12 @@ export default function ProfilePage() {
                       {editing && (
                         <div className="flex items-center gap-3 pt-2">
                           <button type="submit" disabled={saving}
-                            className="flex items-center gap-2 bg-brand-orange hover:bg-brand-orange-hover text-white font-bold px-8 py-3 rounded-full shadow-md hover:shadow-lg transition-all disabled:opacity-60">
+                            className="flex cursor-pointer items-center gap-2 bg-brand-orange hover:bg-brand-orange-hover text-white font-bold px-8 py-3 rounded-full shadow-md hover:shadow-lg transition-all disabled:opacity-60">
                             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                             {saving ? "Saving…" : "Save Changes"}
                           </button>
                           <button type="button" onClick={() => { setEditing(false); setSaveMsg(null); }}
-                            className="flex items-center gap-2 border border-gray-200 text-gray-600 font-bold px-6 py-3 rounded-full hover:bg-gray-50 transition-all">
+                            className="flex cursor-pointer items-center gap-2 border border-gray-200 text-gray-600 font-bold px-6 py-3 rounded-full hover:bg-gray-50 transition-all">
                             <X className="w-4 h-4" /> Cancel
                           </button>
                         </div>
@@ -626,7 +626,7 @@ export default function ProfilePage() {
                               />
                               <button type="button"
                                 onClick={() => setShowPw(prev => ({ ...prev, [key]: !prev[key] }))}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                                className="absolute cursor-pointer right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
                                 {showPw[key] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                               </button>
                             </div>
@@ -635,7 +635,7 @@ export default function ProfilePage() {
                       })}
                       <div className="pt-2">
                         <button type="submit" disabled={pwSaving}
-                          className="flex items-center gap-2 bg-brand-navy hover:bg-brand-navy/90 text-white font-bold px-8 py-3 rounded-full shadow-md transition-all disabled:opacity-60">
+                          className="flex cursor-pointer items-center gap-2 bg-brand-navy hover:bg-brand-navy/90 text-white font-bold px-8 py-3 rounded-full shadow-md transition-all disabled:opacity-60">
                           {pwSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                           {pwSaving ? "Updating…" : "Update Password"}
                         </button>
@@ -646,16 +646,16 @@ export default function ProfilePage() {
 
                 {/* Danger Zone */}
                 <div className="bg-red-50 border border-red-100 rounded-3xl p-6">
-                  <h3 className="font-serif font-black text-xl text-red-600 mb-2">Danger Zone</h3>
+                  <h3 className="font-serif font-black text-xl text-red-600 mb-2">Delete your Account?</h3>
                   <p className="text-red-400 text-sm font-medium mb-4">
                     Permanently delete your account and all your data. This action cannot be undone.
                   </p>
-                  <button className="border border-red-300 text-red-500 hover:bg-red-100 font-bold px-6 py-2.5 rounded-full text-sm transition-all">
+                  <button className="border cursor-pointer border-red-300 text-red-500 hover:bg-red-100 font-bold px-6 py-2.5 rounded-full text-sm transition-all">
                     Delete Account
                   </button>
                 </div>
 
-                -10              </div>
+              </div>
             )}
 
           </div>

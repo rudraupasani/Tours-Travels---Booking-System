@@ -31,18 +31,18 @@ export default function AboutPage() {
       <Navbar />
 
       {/* Hero */}
-      <div className="relative h-[60vh] min-h-[420px] flex items-end -mt-0">
+      <div className="relative h-[40vh] min-h-[350px] flex items-end ">
         <Image
           src="https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=1800&auto=format&fit=crop"
           alt="About Travelora hero"
           fill
           priority
-          sizes="100vw"
+          sizes="60vw"
           className="object-cover object-center"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-brand-navy/80 via-brand-navy/40 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-r from-brand-navy/50 to-transparent" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-14 pt-32 w-full">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-15 pt-15 w-full">
           <div className="flex items-center gap-2 text-white/60 text-sm mb-3">
             <Link href="/" className="hover:text-brand-orange transition-colors">Home</Link>
             <span>/</span>
@@ -98,7 +98,7 @@ export default function AboutPage() {
               <div>
                 <p className="font-black text-brand-navy text-sm">50,000+ Travellers</p>
                 <div className="flex items-center gap-1">
-                  {[1,2,3,4,5].map(s => <Star key={s} className="w-3 h-3 fill-amber-400 text-amber-400" />)}
+                  {[1, 2, 3, 4, 5].map(s => <Star key={s} className="w-3 h-3 fill-amber-400 text-amber-400" />)}
                   <span className="text-xs text-gray-500 font-semibold ml-1">4.9 avg rating</span>
                 </div>
               </div>

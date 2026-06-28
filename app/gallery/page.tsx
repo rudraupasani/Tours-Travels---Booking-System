@@ -34,7 +34,7 @@ export default function GalleryPage() {
       <Navbar />
 
       {/* Hero */}
-      <div className="relative bg-brand-navy pt-32 pb-16 overflow-hidden">
+      <div className="relative bg-brand-navy pt-15 pb-15 overflow-hidden">
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 70% 50%, #ffa801 0%, transparent 55%), radial-gradient(circle at 20% 80%, #3b82f6 0%, transparent 45%)" }} />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="flex items-center justify-center gap-2 text-white/50 text-sm mb-4">
