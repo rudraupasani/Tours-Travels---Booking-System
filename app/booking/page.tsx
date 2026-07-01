@@ -158,11 +158,10 @@ function BookingContent() {
             {STEPS.map((s, i) => (
               <div key={s.id} className="flex items-center flex-1 last:flex-none">
                 <div className="flex flex-col items-center gap-1">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all font-bold text-sm ${
-                    step > s.id ? "bg-green-500 border-green-500 text-white" :
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all font-bold text-sm ${step > s.id ? "bg-green-500 border-green-500 text-white" :
                     step === s.id ? "bg-brand-orange border-brand-orange text-white" :
-                    "bg-white/10 border-white/30 text-white/40"
-                  }`}>
+                      "bg-white/10 border-white/30 text-white/40"
+                    }`}>
                     {step > s.id ? <Check className="w-5 h-5" /> : <s.icon className="w-4 h-4" />}
                   </div>
                   <span className={`text-xs font-semibold hidden sm:block ${step >= s.id ? "text-white" : "text-white/40"}`}>{s.label}</span>
@@ -296,8 +295,8 @@ function BookingContent() {
                   <p className="text-gray-500 font-medium mb-2">Your booking ID is <span className="text-brand-orange font-black">#TRV-{bookingId || "00000"}</span></p>
                   <p className="text-gray-400 text-sm mb-8">A confirmation email has been sent to {form.email || "your email address"}.</p>
                   <div className="flex gap-4">
-                    <Link href="/dashboard" className="bg-brand-orange hover:bg-brand-orange-hover text-white font-bold px-6 py-3 rounded-full transition-all shadow-md">
-                      View Dashboard
+                    <Link href="/profile" className="bg-brand-orange hover:bg-brand-orange-hover text-white font-bold px-6 py-3 rounded-full transition-all shadow-md">
+                      View Profile
                     </Link>
                     <Link href="/tours" className="border border-gray-200 text-brand-navy font-bold px-6 py-3 rounded-full hover:bg-gray-50 transition-all">
                       Browse More Tours
@@ -316,7 +315,19 @@ function BookingContent() {
                   <button
                     disabled={submitting}
                     onClick={async () => {
-                      if (step === 3 && selectedTour) {
+                      if (step === 1) {
+                        setStep(2);
+                      } else if (step === 2) {
+                        if (!form.firstName || !form.lastName || !form.email || !form.phone) {
+                          alert("Please fill in all personal details to continue.");
+                          return;
+                        }
+                        setStep(3);
+                      } else if (step === 3 && selectedTour) {
+                        if (!form.cardName || !form.cardNumber || !form.cardExpiry || !form.cardCVV) {
+                          alert("Please fill in your payment details to confirm booking.");
+                          return;
+                        }
                         setSubmitting(true);
                         const startDate = selectedTour.tourStartDate || new Date().toISOString().split("T")[0];
                         const endDate = selectedTour.tourEndDate
@@ -327,6 +338,9 @@ function BookingContent() {
                           end_date: endDate,
                           amount: total,
                           travellers: form.guests,
+                          customer_name: `${form.firstName} ${form.lastName}`,
+                          customer_email: form.email,
+                          customer_phone: form.phone,
                         });
                         setSubmitting(false);
                         if (result) {

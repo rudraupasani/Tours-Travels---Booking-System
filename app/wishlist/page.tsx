@@ -76,7 +76,9 @@ export default function WishlistPage() {
                   <div className="flex items-center gap-4 text-sm font-medium text-gray-500 mb-6">
                     <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" />{tour.duration}</span>
                     <span className="flex items-center gap-1.5"><Users className="w-4 h-4" />Max {tour.groupSize}</span>
-                    <span className="flex items-center gap-1.5 text-amber-500"><Star className="w-4 h-4 fill-amber-400" />{tour.rating}</span>
+                    {tour.rating > 0 && (
+                      <span className="flex items-center gap-1.5 text-amber-500"><Star className="w-4 h-4 fill-amber-400" />{tour.rating}</span>
+                    )}
                   </div>
                   <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
                     <div>

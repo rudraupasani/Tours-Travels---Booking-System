@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Booking, getBookings, updateBookingStatus, deleteBooking } from "@/lib/data";
-import { CalendarDays, Users, DollarSign, Trash2, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { CalendarDays, Users, DollarSign, Trash2, Clock, CheckCircle, XCircle, AlertCircle, Eye, X, Mail, Phone, User } from "lucide-react";
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; icon: any }> = {
   Confirmed: { bg: "bg-green-100", text: "text-green-700", icon: CheckCircle },
@@ -15,6 +15,7 @@ export default function AdminBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [viewingBooking, setViewingBooking] = useState<Booking | null>(null);
   const [filter, setFilter] = useState("All");
 
   useEffect(() => {
@@ -116,6 +117,7 @@ export default function AdminBookingsPage() {
               <tr className="bg-gray-50 border-b border-gray-100">
                 <th className="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Booking ID</th>
                 <th className="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Tour</th>
+                <th className="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Customer</th>
                 <th className="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Dates</th>
                 <th className="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Travellers</th>
                 <th className="p-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Amount</th>
@@ -137,6 +139,10 @@ export default function AdminBookingsPage() {
                     <td className="p-4">
                       <p className="font-bold text-brand-navy text-sm">{(booking.tour as any)?.title || "—"}</p>
                       <p className="text-xs text-gray-400">{(booking.tour as any)?.destination || ""}</p>
+                    </td>
+                    <td className="p-4">
+                      <p className="font-bold text-brand-navy text-sm">{booking.customer_name || "Guest"}</p>
+                      <p className="text-xs text-gray-400">{booking.customer_email || "—"}</p>
                     </td>
                     <td className="p-4 text-sm text-gray-600 font-medium">
                       <div className="flex items-center gap-1">
@@ -166,16 +172,21 @@ export default function AdminBookingsPage() {
                       </select>
                     </td>
                     <td className="p-4 text-right">
-                      <button onClick={() => setDeleteConfirm(booking.id)} className="text-red-400 hover:bg-red-50 p-2 rounded-lg transition-colors" title="Delete">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button onClick={() => setViewingBooking(booking)} className="text-blue-500 hover:bg-blue-50 p-2 rounded-lg transition-colors" title="View Details">
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => setDeleteConfirm(booking.id)} className="text-red-400 hover:bg-red-50 p-2 rounded-lg transition-colors" title="Delete">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-gray-500">
+                  <td colSpan={8} className="p-8 text-center text-gray-500">
                     {filter === "All" ? "No bookings yet. Bookings will appear here once customers book tours." : `No ${filter.toLowerCase()} bookings.`}
                   </td>
                 </tr>
@@ -200,6 +211,90 @@ export default function AdminBookingsPage() {
               </button>
               <button onClick={() => handleDelete(deleteConfirm)} className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-2.5 rounded-xl transition-colors text-sm">
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Booking Modal */}
+      {viewingBooking && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center p-4 overflow-y-auto" onClick={() => setViewingBooking(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full my-10" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+              <h2 className="font-serif font-black text-xl text-brand-navy">Booking Details</h2>
+              <button onClick={() => setViewingBooking(null)} className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors">
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Tour Info */}
+              <div className="bg-gray-50 p-5 rounded-xl border border-gray-100">
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Tour Details</h3>
+                <p className="text-lg font-black text-brand-navy">{(viewingBooking.tour as any)?.title || "Unknown Tour"}</p>
+                <p className="text-sm font-medium text-gray-500">{(viewingBooking.tour as any)?.destination || "Unknown Destination"}</p>
+                
+                <div className="mt-4 grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Travel Dates</p>
+                    <p className="text-sm font-bold text-brand-navy mt-1">
+                      {new Date(viewingBooking.start_date).toLocaleDateString()} - {new Date(viewingBooking.end_date).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Travellers</p>
+                    <p className="text-sm font-bold text-brand-navy mt-1">{viewingBooking.travellers} Pax</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Amount Paid</p>
+                    <p className="text-sm font-bold text-brand-navy mt-1">₹{viewingBooking.amount.toLocaleString("en-IN")}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Status</p>
+                    <span className="text-sm font-bold text-brand-navy mt-1">{viewingBooking.status}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Customer Info */}
+              <div>
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Customer Information</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-brand-orange/10 rounded-full flex items-center justify-center text-brand-orange">
+                      <User className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Full Name</p>
+                      <p className="text-sm font-bold text-brand-navy">{viewingBooking.customer_name || "N/A"}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-blue-500">
+                      <Mail className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Email Address</p>
+                      <p className="text-sm font-bold text-brand-navy">{viewingBooking.customer_email || "N/A"}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-green-50 rounded-full flex items-center justify-center text-green-500">
+                      <Phone className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Phone Number</p>
+                      <p className="text-sm font-bold text-brand-navy">{viewingBooking.customer_phone || "N/A"}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-100 flex justify-end">
+              <button onClick={() => setViewingBooking(null)} className="border border-gray-200 text-brand-navy font-bold px-6 py-2.5 rounded-xl hover:bg-gray-50 transition-colors text-sm">
+                Close
               </button>
             </div>
           </div>

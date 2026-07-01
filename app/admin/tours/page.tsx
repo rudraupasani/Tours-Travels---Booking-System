@@ -174,19 +174,22 @@ export default function AdminToursPage() {
                   </td>
                   <td className="p-4 font-bold text-brand-navy">₹{tour.price.toLocaleString("en-IN")}</td>
                   <td className="p-4">
-                    <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                      <span className="font-bold text-sm text-brand-navy">{tour.rating}</span>
-                    </div>
+                    {tour.rating > 0 ? (
+                      <div className="flex items-center gap-1">
+                        <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                        <span className="font-bold text-sm text-brand-navy">{tour.rating}</span>
+                      </div>
+                    ) : (
+                      <span className="text-xs font-bold text-gray-400">New</span>
+                    )}
                   </td>
                   <td className="p-4">
                     <button
                       onClick={() => togglePopular(tour.id, !!tour.isPopular)}
-                      className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
-                        tour.isPopular
-                          ? "bg-green-100 text-green-700 hover:bg-green-200"
-                          : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                      }`}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${tour.isPopular
+                        ? "bg-green-100 text-green-700 hover:bg-green-200"
+                        : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                        }`}
                     >
                       {tour.isPopular ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
                       {tour.isPopular ? "Popular" : "Standard"}
@@ -194,6 +197,9 @@ export default function AdminToursPage() {
                   </td>
                   <td className="p-4 text-right">
                     <div className="flex items-center justify-end gap-2">
+                      <button onClick={() => openTourDetail(tour)} className="text-blue-500 hover:bg-blue-50 p-2 rounded-lg transition-colors" title="View Details">
+                        <Eye className="w-4 h-4" />
+                      </button>
                       <button onClick={() => openEdit(tour)} className="text-brand-orange hover:bg-orange-50 p-2 rounded-lg transition-colors" title="Edit">
                         <Pencil className="w-4 h-4" />
                       </button>
@@ -499,6 +505,69 @@ export default function AdminToursPage() {
           </div>
         </div>
       )}
+      {/* ── View Tour Modal ── */}
+      {viewingTour && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center p-4 overflow-y-auto" onClick={() => setViewingTour(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full my-10" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+              <h2 className="font-serif font-black text-xl text-brand-navy">Tour Details: {viewingTour.title}</h2>
+              <button onClick={() => setViewingTour(null)} className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors">
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            <div className="p-6 max-h-[70vh] overflow-y-auto">
+              <div className="mb-6">
+                <h3 className="font-bold text-brand-navy mb-4">Bookings for this Tour</h3>
+                {bookingsLoading ? (
+                  <div className="flex justify-center py-10">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-orange"></div>
+                  </div>
+                ) : tourBookings.length > 0 ? (
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-gray-50 border-b border-gray-100">
+                          <th className="p-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Booking ID</th>
+                          <th className="p-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Customer</th>
+                          <th className="p-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Dates</th>
+                          <th className="p-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Pax</th>
+                          <th className="p-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {tourBookings.map(b => (
+                          <tr key={b.id} className="border-b border-gray-50">
+                            <td className="p-3 text-xs font-bold text-brand-navy">#{b.id.slice(0, 8).toUpperCase()}</td>
+                            <td className="p-3">
+                              <p className="font-bold text-brand-navy text-sm">{b.customer_name || "Guest"}</p>
+                              <p className="text-xs text-gray-400">{b.customer_email || "—"}</p>
+                            </td>
+                            <td className="p-3 text-xs text-gray-600 font-medium">
+                              {new Date(b.start_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                              {" → "}
+                              {new Date(b.end_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                            </td>
+                            <td className="p-3 text-sm font-bold text-gray-600">{b.travellers}</td>
+                            <td className="p-3 text-xs font-bold text-gray-600">{b.status}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-gray-500 bg-gray-50 p-4 rounded-xl border border-gray-100">No bookings yet for this tour.</p>
+                )}
+              </div>
+            </div>
+            <div className="p-6 border-t border-gray-100 flex justify-end">
+              <button onClick={() => setViewingTour(null)} className="border border-gray-200 text-brand-navy font-bold px-6 py-2.5 rounded-xl hover:bg-gray-50 transition-colors text-sm">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

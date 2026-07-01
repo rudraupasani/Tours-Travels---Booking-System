@@ -1,11 +1,40 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { LayoutDashboard, Compass, Map, CalendarDays, ImageIcon, MessageSquare, LogOut } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    async function checkAdmin() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.replace("/login?redirect=/admin");
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("is_admin")
+        .eq("id", session.user.id)
+        .single();
+
+      if (error || !data?.is_admin) {
+        // Not an admin, redirect to homepage or show access denied
+        router.replace("/");
+        return;
+      }
+
+      setIsAdmin(true);
+    }
+    checkAdmin();
+  }, [router]);
 
   const navSections = [
     {
@@ -30,6 +59,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       ],
     },
   ];
+
+  if (isAdmin === null) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-50">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-orange" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-slate-50/50">

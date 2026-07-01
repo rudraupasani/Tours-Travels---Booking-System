@@ -110,12 +110,14 @@ export default async function PopularPackages() {
                       </div>
 
                       {/* Star Rating */}
-                      <div className="flex items-center gap-1 bg-amber-50 px-2.5 py-1.5 rounded-full text-brand-navy">
-                        <Star className="w-3.5 h-3.5 fill-brand-orange text-brand-orange" />
-                        <span className="text-xs font-extrabold">
-                          {item.rating.toFixed(1)}
-                        </span>
-                      </div>
+                      {item.rating > 0 && (
+                        <div className="flex items-center gap-1 bg-amber-50 px-2.5 py-1.5 rounded-full text-brand-navy">
+                          <Star className="w-3.5 h-3.5 fill-brand-orange text-brand-orange" />
+                          <span className="text-xs font-extrabold">
+                            {item.rating.toFixed(1)}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

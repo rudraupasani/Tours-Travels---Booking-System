@@ -226,7 +226,7 @@ export default function TourDetailPage({ params }: { params: Promise<{ id: strin
             {/* Quick stats row */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
               {[
-                { icon: Star, label: "Rating", value: `${tour.rating} (${tour.reviews} reviews)`, color: "text-amber-500" },
+                { icon: Star, label: "Rating", value: tour.rating > 0 ? `${tour.rating} (${tour.reviews} reviews)` : "No reviews yet", color: "text-amber-500" },
                 { icon: Clock, label: "Duration", value: tour.duration, color: "text-blue-500" },
                 { icon: Users, label: "Group Size", value: `Max ${tour.groupSize} people`, color: "text-purple-500" },
                 { icon: MapPin, label: "Destination", value: `${tour.destination}, ${tour.country}`, color: "text-brand-orange" },
@@ -343,26 +343,28 @@ export default function TourDetailPage({ params }: { params: Promise<{ id: strin
 
             {activeTab === "Reviews" && (
               <div className="space-y-5">
-                <div className="flex items-center gap-6 p-6 bg-brand-navy rounded-2xl text-white">
-                  <div className="text-center">
-                    <p className="text-6xl font-black font-serif">{tour.rating}</p>
-                    <div className="flex items-center justify-center gap-0.5 my-1">
-                      {[1, 2, 3, 4, 5].map((s) => <Star key={s} className={`w-4 h-4 ${s <= Math.round(tour.rating) ? "fill-amber-400 text-amber-400" : "text-white/30"}`} />)}
-                    </div>
-                    <p className="text-white/60 text-xs font-semibold">{tour.reviews} Reviews</p>
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    {reviewBreakdown.map(({ label, pct }) => (
-                      <div key={label} className="flex items-center gap-3 text-sm">
-                        <span className="w-16 text-white/60 font-medium text-xs">{label}</span>
-                        <div className="flex-1 h-2 bg-white/20 rounded-full overflow-hidden">
-                          <div className="h-full bg-amber-400 rounded-full" style={{ width: `${pct}%` }} />
-                        </div>
-                        <span className="text-white/60 text-xs w-8">{pct}%</span>
+                {tour.rating > 0 && (
+                  <div className="flex items-center gap-6 p-6 bg-brand-navy rounded-2xl text-white">
+                    <div className="text-center">
+                      <p className="text-6xl font-black font-serif">{tour.rating}</p>
+                      <div className="flex items-center justify-center gap-0.5 my-1">
+                        {[1, 2, 3, 4, 5].map((s) => <Star key={s} className={`w-4 h-4 ${s <= Math.round(tour.rating) ? "fill-amber-400 text-amber-400" : "text-white/30"}`} />)}
                       </div>
-                    ))}
+                      <p className="text-white/60 text-xs font-semibold">{tour.reviews} Reviews</p>
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      {reviewBreakdown.map(({ label, pct }) => (
+                        <div key={label} className="flex items-center gap-3 text-sm">
+                          <span className="w-16 text-white/60 font-medium text-xs">{label}</span>
+                          <div className="flex-1 h-2 bg-white/20 rounded-full overflow-hidden">
+                            <div className="h-full bg-amber-400 rounded-full" style={{ width: `${pct}%` }} />
+                          </div>
+                          <span className="text-white/60 text-xs w-8">{pct}%</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* List of Reviews */}
                 {loadingReviews ? (

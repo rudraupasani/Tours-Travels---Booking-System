@@ -44,6 +44,9 @@ export interface Booking {
   status: "Confirmed" | "Pending" | "Cancelled" | "Completed";
   amount: number;
   travellers: number;
+  customer_name?: string;
+  customer_email?: string;
+  customer_phone?: string;
   tour?: Tour;
 }
 
@@ -330,6 +333,9 @@ export async function createBooking(booking: {
   amount: number;
   travellers: number;
   status?: string;
+  customer_name?: string;
+  customer_email?: string;
+  customer_phone?: string;
 }) {
   // Attach the logged-in user's ID so profile bookings work
   const { data: { session } } = await supabase.auth.getSession();

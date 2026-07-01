@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Heart, Menu, X, User, BookOpen, Settings, LogOut, ChevronDown, LogIn, UserPlus } from "lucide-react";
 import { useWishlist } from "@/components/WishlistProvider";
 import { useAuth } from "@/components/AuthProvider";
+import { supabase } from "@/lib/supabase";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -17,6 +18,19 @@ export default function Navbar() {
   const isHomePage = pathname === "/";
   const { wishlist } = useWishlist();
   const { user, loading, signOut } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    async function checkAdmin() {
+      if (user) {
+        const { data } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
+        setIsAdmin(!!data?.is_admin);
+      } else {
+        setIsAdmin(false);
+      }
+    }
+    checkAdmin();
+  }, [user]);
 
   useEffect(() => {
     if (!isHomePage) { setIsScrolled(true); return; }
@@ -133,10 +147,12 @@ export default function Navbar() {
                           className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-orange-50 hover:text-brand-orange transition-colors">
                           <BookOpen className="w-4 h-4" /> My Bookings
                         </Link>
-                        <Link href="/admin" onClick={() => setProfileOpen(false)}
-                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-orange-50 hover:text-brand-orange transition-colors">
-                          <Settings className="w-4 h-4" /> Admin Panel
-                        </Link>
+                        {isAdmin && (
+                          <Link href="/admin" onClick={() => setProfileOpen(false)}
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-700 hover:bg-orange-50 hover:text-brand-orange transition-colors">
+                            <Settings className="w-4 h-4" /> Admin Panel
+                          </Link>
+                        )}
                         <div className="border-t border-gray-100 my-2" />
                         <button onClick={handleSignOut}
                           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors">
@@ -225,9 +241,11 @@ export default function Navbar() {
                   <Link href="/wishlist" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-base font-semibold text-brand-navy hover:bg-gray-50 hover:text-brand-orange">
                     <Heart className="w-5 h-5 text-brand-orange" /> Wishlist {wishlist.length > 0 && <span className="ml-auto bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full">{wishlist.length}</span>}
                   </Link>
-                  <Link href="/admin" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-base font-semibold text-brand-navy hover:bg-gray-50 hover:text-brand-orange">
-                    <Settings className="w-5 h-5 text-brand-orange" /> Admin Panel
-                  </Link>
+                  {isAdmin && (
+                    <Link href="/admin" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-base font-semibold text-brand-navy hover:bg-gray-50 hover:text-brand-orange">
+                      <Settings className="w-5 h-5 text-brand-orange" /> Admin Panel
+                    </Link>
+                  )}
                   <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-base font-semibold text-red-500 hover:bg-red-50">
                     <LogOut className="w-5 h-5" /> Sign Out
                   </button>
